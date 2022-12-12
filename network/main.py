@@ -1,90 +1,104 @@
-from ipmininet.iptopo import IPTopo
-from ipmininet.ipnet import IPNet
-from ipmininet.cli import IPCLI
-from ipmininet.link import IPIntf
-from ipmininet.node_description import NodeDescription
-import subprocess
+#!/usr/bin/env python
+
+"""
+Create a network and start sshd(8) on each host.
+
+While something like rshd(8) would be lighter and faster,
+(and perfectly adequate on an in-machine network)
+the advantage of running sshd is that scripts can work
+unchanged on mininet and hardware.
+
+In addition to providing ssh access to hosts, this example
+demonstrates:
+
+- creating a convenience function to construct networks
+- connecting the host network to the root namespace
+- running server processes (sshd in this case) on hosts
+"""
+
+import sys
+
+from mininet.net import Mininet
+from mininet.cli import CLI
+from mininet.log import lg, info
+from mininet.node import Node
+from mininet.util import waitListening
+from mininet.topo import Topo
+
+class TreeTopo(Topo):
+    "2-layer tree topology"
+
+    def build(self):
+        host1 = self.addHost('h1')
+        host2 = self.addHost('h2')
+        host3 = self.addHost('h3')
+        host4 = self.addHost('h4')
+        s1 = self.addSwitch('s1')
+        s2 = self.addSwitch('s2')
+        s3 = self.addSwitch('s3')
+
+        self.addLink(s1, host1)
+        self.addLink(s1, host2)
+        self.addLink(s2, host3)
+        self.addLink(s2, host4)
+        self.addLink(s3, s1)
+        self.addLink(s3, s2)
 
 
-class FatTreeTopology(IPTopo):
+def TreeNet( depth=1, fanout=2, **kwargs ):
+    "Convenience function for creating tree networks."
+    topo = TreeTopo()
+    return Mininet( topo, waitConnected=True, **kwargs )
 
-    def build(self, *args, **kwargs):
-        rl1 = self.addRouter("rl1", lo_addresses=["10.1.0.1/24"])
-        rl2 = self.addRouter("rl2", lo_addresses=["10.2.0.1/24"])
-        rl3 = self.addRouter("rl3", lo_addresses=["10.3.0.1/24"])
-        rl4 = self.addRouter("rl4", lo_addresses=["10.4.0.1/24"])
+def connectToRootNS( network, switch, ip, routes ):
+    """Connect hosts to root namespace via switch. Starts network.
+      network: Mininet() network object
+      switch: switch to connect to root namespace
+      ip: IP address for root namespace node
+      routes: host networks to route to"""
+    # Create a node in root namespace and link to switch 0
+    root = Node( 'root', inNamespace=False )
+    intf = network.addLink( root, switch ).intf1
+    root.setIP( ip, intf=intf )
+    # Start network that now includes link to root namespace
+    network.start()
+    # Add routes from root ns to hosts
+    for route in routes:
+        root.cmd( 'route add -net ' + route + ' dev ' + str( intf ) )
 
-        rs1 = self.addRouter("rs1", lo_addresses=["10.5.0.1/24"])
-        rs2 = self.addRouter("rs2", lo_addresses=["10.6.0.1/24"])
-        rs3 = self.addRouter("rs3", lo_addresses=["10.7.0.1/24"])
-        rs4 = self.addRouter("rs4", lo_addresses=["10.8.0.1/24"])
+# pylint: disable=too-many-arguments
+def sshd( network, cmd='/usr/sbin/sshd', opts='-D',
+          ip='10.123.123.1/32', routes=None, switch=None ):
+    """Start a network, connect it to root ns, and run sshd on all hosts.
+       ip: root-eth0 IP address in root namespace (10.123.123.1/32)
+       routes: Mininet host networks to route to (10.0/24)
+       switch: Mininet switch to connect to root namespace (s1)"""
+    if not switch:
+        switch = network[ 's1' ]  # switch to use
+    if not routes:
+        routes = [ '10.0.0.0/24' ]
+    connectToRootNS( network, switch, ip, routes )
+    for host in network.hosts:
+        host.cmd( cmd + ' ' + opts + '&' )
+    info( "*** Waiting for ssh daemons to start\n" )
+    for server in network.hosts:
+        waitListening( server=server, port=22, timeout=5 )
 
-        rc1 = self.addRouter("rc1", lo_addresses=["10.9.0.1/24"])
-
-        # h1 = self.addHost("h1")
-        # h2 = self.addHost("h2")
-        # h3 = self.addHost("h3")
-        # h4 = self.addHost("h4")
-        # h5 = self.addHost("h5")
-        # h6 = self.addHost("h6")
-        # h7 = self.addHost("h7")
-        # h8 = self.addHost("h8")
-
-        # self.addLink(rl1, h1)
-        # self.addLink(rl1, h2)
-        # self.addLink(rl1, h3)
-        # self.addLink(rl1, h4)
-        # self.addLink(rl2, h5)
-        # self.addLink(rl2, h6)
-        # self.addLink(rl2, h7)
-        # self.addLink(rl2, h8)
-
-        lrs1rl1 = self.addLink(rs1, rl1)
-        lrs1rl1[rs1].addParams(ip=("10.51.0.1/24"))
-        lrs1rl1[rl1].addParams(ip=("10.51.0.2/24"))
-        lrs1rl2 = self.addLink(rs1, rl2)
-        lrs1rl2[rs1].addParams(ip=("10.52.0.1/24"))
-        lrs1rl2[rl2].addParams(ip=("10.52.0.2/24"))
-        lrs2rl1 = self.addLink(rs2, rl1)
-        lrs2rl1[rs2].addParams(ip=("10.61.0.1/24"))
-        lrs2rl1[rl1].addParams(ip=("10.61.0.2/24"))
-        lrs2rl2 = self.addLink(rs2, rl2)
-        lrs2rl2[rs2].addParams(ip=("10.62.0.1/24"))
-        lrs2rl2[rl2].addParams(ip=("10.62.0.2/24"))
-
-        lrc1rs1 = self.addLink(rc1, rs1)
-        lrc1rs1[rc1].addParams(ip=("10.95.0.1/24"))
-        lrc1rs1[rs1].addParams(ip=("10.95.0.2/24"))
-        lrc1rs2 = self.addLink(rc1, rs2)
-        lrc1rs2[rc1].addParams(ip=("10.96.0.1/24"))
-        lrc1rs2[rs2].addParams(ip=("10.96.0.2/24"))
+    info( "\n*** Hosts are running sshd at the following addresses:\n" )
+    for host in network.hosts:
+        info( host.name, host.IP(), '\n' )
+    info( "\n*** Type 'exit' or control-D to shut down network\n" )
+    CLI( network )
+    for host in network.hosts:
+        host.cmd( 'kill %' + cmd )
+    network.stop()
 
 
-        super().build(*args, **kwargs)
-
-
-# create veth in root namespace
-#subprocess.run("sudo ip link add veth1_a type veth peer name veth1_b", shell=True)
-#subprocess.run("sudo ip link add veth2_a type veth peer name veth2_b", shell=True)
-
-
-net = IPNet(topo=FatTreeTopology(), allocate_IPs=False)
-print("IPNet created")
-
-rl1 = list(filter(lambda r:r.name=='rl1', net.routers))[0]
-rl2 = list(filter(lambda r:r.name=='rl2', net.routers))[0]
-
-_intf1 = IPIntf("veth1_b", rl1)
-_intf2 = IPIntf("veth2_b", rl2)
-_intf1.ip = "10.101.0.1/24"
-_intf2.ip = "10.102.0.1/24"
-print("IPIntf created")
-
-
-try:
-    print("net.start()")
-    net.start()
-    print("IPCLI")
-    IPCLI(net)
-finally:
-    net.stop()
+if __name__ == '__main__':
+    lg.setLogLevel( 'info')
+    net = TreeNet( depth=1, fanout=4 )
+    # get sshd args from the command line or use default args
+    # useDNS=no -u0 to avoid reverse DNS lookup timeout
+    argvopts = ' '.join( sys.argv[ 1: ] ) if len( sys.argv ) > 1 else (
+        '-D -o UseDNS=no -u0' )
+    sshd( net, opts=argvopts )
