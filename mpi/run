@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# h1 su user -c  'cd ../mpi && ./run
+
+# export PATH=/home/user/mpich-install/bin:$PATH
+# user-ThinkCentre-M720s
+
+# 修正点
+# mininetのバイナリを書き換えている/usr/bin/mnexec
+# mininet/mnexec.cの内容 https://github.com/mininet/mininet/blob/master/mnexec.c#L129
+# netnamespace, mntnamespaceに加えて，utsnamespaceも分離する
+
+# /home/user/mpich-install/bin/mpirun -np 2  -f hostfile ./example -vvv
+# CPPFLAGS="" LDFLAGS="" /home/user/mpich-install/bin/mpirun  -n 4  -f ./hostfile ./example -vvv
+/home/user/mpich-install/bin/mpirun  -n 4 -f /home/user/icsim/mpi/hostfile /home/user/icsim/mpi/example -vvv
+

@@ -11,10 +11,14 @@ int main(int argc, char **argv)
 	int data[MAXSIZE], i, x, low, high, myresult=0, result;
 	char fn[255];
 	FILE *fp;
+	char name[255];
+	int len;
 
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 	MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+	MPI_Get_processor_name(name, &len);
+	printf("%s\n", name);
 
 	if(0 == myid) {
 		/* open input file and intialize data */
