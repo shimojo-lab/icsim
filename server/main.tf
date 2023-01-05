@@ -41,7 +41,6 @@ resource "libvirt_cloudinit_disk" "commoninit" {
           name = "${var.hostname}-commoninit.iso"
           pool = "default"
           user_data = data.template_file.user_data.rendered
-          network_config = data.template_file.network_config.rendered
 }
 
 
@@ -53,18 +52,15 @@ data "template_file" "user_data" {
   }
 }
 
-data "template_file" "network_config" {
-  template = file("${path.module}/network_config_dhcp.cfg")
-}
 
 resource "libvirt_domain" "VM1" {
   name = "VM1"
   memory = 1024
   vcpu = 2
 
-  network_interface {
-    macvtap = "veth1_a"
-  }
+  # network_interface {
+  #   macvtap = "veth1_a"
+  # }
   cloudinit = libvirt_cloudinit_disk.commoninit.id
 
 
@@ -84,9 +80,9 @@ resource "libvirt_domain" "VM2" {
   memory = 1024
   vcpu = 2
 
-  network_interface {
-    macvtap = "veth2_a"
-  }
+  # network_interface {
+  #   macvtap = "veth2_a"
+  # }
   cloudinit = libvirt_cloudinit_disk.commoninit.id
 
   disk {
@@ -102,5 +98,5 @@ resource "libvirt_domain" "VM2" {
 
 output "ips" {
   # show IP, run 'terraform refresh' if not populated
-  value = libvirt_domain.VM1.*.network_interface.0.addresses
+  value = libvirt_domain.VM1
 }

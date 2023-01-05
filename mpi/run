@@ -12,5 +12,5 @@
 
 # /home/user/mpich-install/bin/mpirun -np 2  -f hostfile ./example -vvv
 # CPPFLAGS="" LDFLAGS="" /home/user/mpich-install/bin/mpirun  -n 4  -f ./hostfile ./example -vvv
-/home/user/mpich-install/bin/mpirun  -n 4 -f /home/user/icsim/mpi/hostfile /home/user/icsim/mpi/example -vvv
+/home/user/ompi-install/bin/mpirun  -n 10 -f /home/user/icsim/mpi/hostfile /home/user/icsim/mpi/example -vvv
 

@@ -18,23 +18,46 @@ class FatTreeTopology(IPTopo):
     def build(self, *args, **kwargs):
         rl1 = self.addRouter("rl1")
         rl2 = self.addRouter("rl2")
+        rl3 = self.addRouter("rl3")
+        rl4 = self.addRouter("rl4")
         rc1 = self.addRouter("rc1")
+        rc2 = self.addRouter("rc2")
 
         h1 = self.addHost("h1")
         h2 = self.addHost("h2")
         h3 = self.addHost("h3")
         h4 = self.addHost("h4")
+        h5 = self.addHost("h5")
+        h6 = self.addHost("h6")
+        h7 = self.addHost("h7")
+        h8 = self.addHost("h8")
         h1.addDaemon(SSHd)
         h2.addDaemon(SSHd)
         h3.addDaemon(SSHd)
         h4.addDaemon(SSHd)
+        h5.addDaemon(SSHd)
+        h6.addDaemon(SSHd)
+        h7.addDaemon(SSHd)
+        h8.addDaemon(SSHd)
 
         self.addLink(rc1, rl1)
         self.addLink(rc1, rl2)
+        self.addLink(rc1, rl3)
+        self.addLink(rc1, rl4)
+
+        self.addLink(rc2, rl1)
+        self.addLink(rc2, rl2)
+        self.addLink(rc2, rl3)
+        self.addLink(rc2, rl4)
+
         lrl1h1 = self.addLink(rl1, h1)
         self.addLink(rl1, h2)
         self.addLink(rl2, h3)
         self.addLink(rl2, h4)
+        self.addLink(rl3, h5)
+        self.addLink(rl3, h6)
+        self.addLink(rl4, h7)
+        self.addLink(rl4, h8)
 
         # Management Network
         # s1 = self.addSwitch("s1")
@@ -46,7 +69,7 @@ class FatTreeTopology(IPTopo):
         self.addNetworkCapture(
                            interfaces=[lrl1h1[rl1]],
                            # The prefix of the capture filename
-                           base_filename="capture",
+                           base_filename="capture_ompi",
                            # Any additional argument to give to tcpdump
                            extra_arguments="-v")
 
