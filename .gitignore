@@ -1,3 +1,11 @@
 id_rsa
 id_rsa.pub
 .terraform*
+
+ipm_ssh_config
+host*
+example
+example-ompi
+osu-micro-benchmarks-*
+
+__pycache__/
