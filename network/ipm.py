@@ -1,5 +1,5 @@
-import sys
 import os
+import datetime
 
 from mininet.log import lg
 from mininet.node import Node
@@ -11,7 +11,8 @@ from ipmininet.router.config.sshd import KEYFILE
 from ssh_config import gen_ssh_config_file, write_file
 
 
-
+capture_base_filename = f"capture_ompi_{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')}"
+capture_dir = '/home/user/icsim/capture/'
 
 class FatTreeTopology(IPTopo):
 
@@ -50,7 +51,7 @@ class FatTreeTopology(IPTopo):
         self.addLink(rc2, rl3)
         self.addLink(rc2, rl4)
 
-        lrl1h1 = self.addLink(rl1, h1)
+        self.addLink(rl1, h1)
         self.addLink(rl1, h2)
         self.addLink(rl2, h3)
         self.addLink(rl2, h4)
@@ -59,19 +60,10 @@ class FatTreeTopology(IPTopo):
         self.addLink(rl4, h7)
         self.addLink(rl4, h8)
 
-        # Management Network
-        # s1 = self.addSwitch("s1")
-        # self.addLink(s1, h1)
-        # self.addLink(s1, h2)
-        # self.addLink(s1, h3)
-        # self.addLink(s1, h4)
-        print(lrl1h1[rl1])
         self.addNetworkCapture(
-                           interfaces=[lrl1h1[rl1]],
-                           # The prefix of the capture filename
-                           base_filename="capture_ompi",
-                           # Any additional argument to give to tcpdump
-                           extra_arguments="-v")
+            nodes=[h1, h2, h3, h4, h5, h6, h7, h8],
+            base_filename=os.path.join(capture_dir, capture_base_filename),
+            extra_arguments="")
 
         super().build(*args, **kwargs)
 
@@ -125,6 +117,9 @@ if __name__ == '__main__':
         print(f"sshd KeyFile: {keyfile}")
         print("Writing ssh config file")
         os.chmod(keyfile, 0o644)
+
+        host_info = [f'{host["host_name"]}, {host["host_ip"]}' for host in host_info]
+        write_file(os.path.join(capture_dir, capture_base_filename), "\n".join(host_info))
 
         IPCLI(net)
     finally:

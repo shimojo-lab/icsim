@@ -1,1 +1,1 @@
-/home/user/mpich-install/bin/mpirun  -n 10 --hostfile /home/user/icsim/mpi/hostfile /home/user/icsim/mpi/example -vvv
+/home/user/ompi-install/bin/mpirun  -n 4 --hostfile /home/user/icsim/mpi/hostfile /home/user/icsim/mpi/example -vvv
